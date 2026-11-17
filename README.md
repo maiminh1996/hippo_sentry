@@ -104,12 +104,12 @@ cp config.example.yaml config.yaml
 # Edit config.yaml with bot_token and chat_id
 
 # Run Sentry Engine & Web Dashboard
-smart-sentry run --config config.yaml
+hippo-sentry run --config config.yaml
 ```
 
 > **Need your Telegram Chat ID?** Run the auto-discovery utility:
 > ```bash
-> smart-sentry find-chat-id --token YOUR_TELEGRAM_BOT_TOKEN
+> hippo-sentry find-chat-id --token YOUR_TELEGRAM_BOT_TOKEN
 > ```
 
 ---

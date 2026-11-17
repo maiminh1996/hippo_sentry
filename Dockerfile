@@ -23,4 +23,4 @@ RUN chmod +x docker-entrypoint.sh scripts/*.sh
 EXPOSE 8080
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["smart-sentry", "run", "--config", "config.yaml"]
+CMD ["hippo-sentry", "run", "--config", "config.yaml"]

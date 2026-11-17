@@ -35,7 +35,7 @@ sentry:
 telegram:
   enabled: false                 # Set to true after filling bot_token and chat_id
   bot_token: ""                  # Obtain from @BotFather on Telegram
-  chat_id: ""                    # Your Telegram user/group ID (Use 'smart-sentry find-chat-id')
+  chat_id: ""                    # Your Telegram user/group ID (Use 'hippo-sentry find-chat-id')
   allowed_chat_ids: []           # Optional whitelist. If empty, allows only the configured chat_id
   polling_interval_seconds: 2.0  # Background listener frequency for remote bot commands
 

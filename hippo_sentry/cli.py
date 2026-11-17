@@ -11,7 +11,7 @@ from .core import SentryEngine
 from .web.app import create_web_app
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-logger = logging.getLogger("smart-sentry")
+logger = logging.getLogger("hippo-sentry")
 
 
 def find_telegram_chat_id(token: str) -> None:
