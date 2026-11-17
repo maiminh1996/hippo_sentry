@@ -16,7 +16,12 @@ Designed for standalone deployment on laptops, Mini PCs, Raspberry Pi, home serv
 
 ---
 
+<p align="center">
+  <img src="./demo.png" />
+</p>
+
 ## Motivation
+
 
 I have a small stuffed hippo sitting on my desk that always seems to be staring at me. Right before leaving for vacation, I needed a simple way to check on my empty room while away. Commercial smart cameras require vendor accounts, stream indoor footage to company clouds, and charge monthly fees just to store clips. Self-hosted NVRs like Frigate are solid for multi-camera setups with dedicated Coral TPUs, but way too heavy when you just want to monitor one room with a single webcam. Most scripts on GitHub were just simple one-off tutorials without two-way bot control or an easy way to shut the camera off for privacy when you get back home.
 
