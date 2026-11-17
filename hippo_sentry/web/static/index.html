@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hippo Sentry Vision</title>
+  <link rel="icon" href="/hippo_icon.png" type="image/png">
+  <style>
+    body {
+      margin: 0;
+      padding: 16px;
+      background: #ffffff;
+      color: #222222;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .badge {
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: bold;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    .badge-armed { background: #d4edda; color: #155724; border-color: #c3e6cb; }
+    .badge-waiting { background: #e2e3e5; color: #383d41; border-color: #d6d8db; }
+
+    /* Simple Buttons */
+    .buttons {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 4px;
+      border: 1px solid #333;
+      background: #f8f9fa;
+      color: #000;
+    }
+    .btn-arm { background: #000; color: #fff; }
+    .btn-disarm { background: #dc3545; color: #fff; border-color: #dc3545; }
+
+    /* Simple 3-line Stats Box */
+    .stats-box {
+      background: #f8f9fa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      line-height: 1.8;
+      font-size: 13.5px;
+    }
+    .stats-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .mono {
+      font-family: monospace;
+      font-weight: bold;
+    }
+
+    /* Video Box - Clean natural scaling without side padding */
+    .video-box {
+      border: 1px solid #ddd;
+      background: #ffffff;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 10px;
+      line-height: 0;
+    }
+    .video-box img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* Footer */
+    .footer {
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <img src="/hippo_icon.png" alt="Hippo Icon" style="width: 26px; height: 26px; border-radius: 4px; object-fit: contain;" onerror="this.style.display='none'">
+        <h1>Hippo Sentry Vision</h1>
+      </div>
+      <span id="armBadge" class="badge badge-waiting">WAITING</span>
+    </div>
+
+    <!-- Buttons -->
+    <div class="buttons">
+      <button id="armBtn" class="btn-arm" onclick="toggleArm()">Arm Guard Mode</button>
+      <button id="camBtn" onclick="toggleCamera()">Disable Camera</button>
+      <button onclick="testAlert()">Test Alert</button>
+    </div>
+
+    <!-- 3 Simple Lines of Stats -->
+    <div class="stats-box">
+      <!-- row 1: CPU và RAM -->
+      <div class="stats-line">
+        <span>CPU: <strong id="cpuVal" class="mono">0.0%</strong></span>
+        <span>|</span>
+        <span>RAM: <strong id="ramVal" class="mono">0 MB / 0 GB</strong></span>
+      </div>
+
+      <!-- row 2: Camera và Speed -->
+      <div class="stats-line">
+        <span>Camera: <strong id="camSensorVal">Online</strong></span>
+        <span>|</span>
+        <span>Speed: <strong id="fpsVal" class="mono">0.0 FPS</strong></span>
+      </div>
+
+      <!-- row 3: Target và Alert -->
+      <div class="stats-line">
+        <span>Target: <strong id="targetsCfgVal">person (0)</strong></span>
+        <span>|</span>
+        <span>Alerts: <strong id="alertsCountVal">0 sent (Last: None)</strong></span>
+      </div>
+    </div>
+
+    <!-- Video at the bottom -->
+    <div class="video-box">
+      <img id="streamImg" src="/video/stream" alt="Live Camera Video Stream">
+    </div>
+
+    <div class="footer">
+      <span id="channelStatusVal">Telegram: Checking... | Email: Checking...</span>
+    </div>
+  </div>
+
+  <script>
+    let isArmed = false;
+    let isCameraPoweredOn = true;
+
+    async function toggleArm() {
+      const endpoint = isArmed ? "/api/disarm" : "/api/arm";
+      await fetch(endpoint, { method: "POST" });
+      updateStatus();
+    }
+
+    async function toggleCamera() {
+      await fetch("/api/camera/toggle", { method: "POST" });
+      updateStatus();
+    }
+
+    async function testAlert() {
+      const btn = event.target;
+      btn.disabled = true;
+      btn.innerText = "Sending...";
+      try {
+        const res = await fetch("/api/alert/test", { method: "POST" });
+        const data = await res.json();
+        alert("Alert dispatched: " + JSON.stringify(data.result));
+      } catch (err) {
+        alert("Error: " + err);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Test Alert";
+      }
+    }
+
+    async function updateStatus() {
+      try {
+        const res = await fetch("/api/status");
+        const s = await res.json();
+
+        isArmed = s.armed;
+        isCameraPoweredOn = s.camera_power;
+
+        const badge = document.getElementById("armBadge");
+        const armBtn = document.getElementById("armBtn");
+        if (s.armed) {
+          badge.innerText = "ARMED";
+          badge.className = "badge badge-armed";
+          armBtn.innerText = "Disarm Guard";
+          armBtn.className = "btn-disarm";
+        } else {
+          badge.innerText = "WAITING";
+          badge.className = "badge badge-waiting";
+          armBtn.innerText = "Arm Guard Mode";
+          armBtn.className = "btn-arm";
+        }
+
+        const camBtn = document.getElementById("camBtn");
+        camBtn.innerText = s.camera_power ? "Disable Camera" : "Enable Camera";
+
+        // row 1: CPU và RAM
+        if (s.system) {
+          document.getElementById("cpuVal").innerText = s.system.cpu_percent.toFixed(1) + "%";
+          const appMb = Math.round(s.system.app_ram_mb);
+          const hostGb = s.system.host_ram_gb;
+          document.getElementById("ramVal").innerText = `${appMb} MB / ${hostGb} GB`;
+        }
+
+        // row 2: Camera và Speed
+        document.getElementById("camSensorVal").innerText = s.camera_power ? "Online" : "Sensor Off";
+        document.getElementById("fpsVal").innerText = Number(s.fps).toFixed(1) + " FPS";
+
+        // row 3: Target và Alert
+        const activeCount = (s.active_detections || []).length;
+        const targetsStr = (s.target_classes || []).join(", ") || "person";
+        document.getElementById("targetsCfgVal").innerText = `${targetsStr} (${activeCount} detected)`;
+
+        const lastStr = s.last_alert_time === "None" ? "None" : s.last_alert_time.split(" ")[1] || s.last_alert_time;
+        document.getElementById("alertsCountVal").innerText = `${s.alerts_count} sent (Last: ${lastStr})`;
+
+        // Footer Channels
+        const tgStr = s.channels.telegram ? "Telegram: Active" : "Telegram: Off";
+        const emStr = s.channels.email ? "Email: Active" : "Email: Off";
+        document.getElementById("channelStatusVal").innerText = `${tgStr} | ${emStr}`;
+      } catch (err) {}
+    }
+
+    setInterval(updateStatus, 1000);
+    updateStatus();
+  </script>
+</body>
+</html>

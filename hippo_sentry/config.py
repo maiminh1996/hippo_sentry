@@ -57,6 +57,12 @@ class MqttConfig(BaseModel):
     topic: str = "sentry/events/intrusion"
 
 
+class WebConfig(BaseModel):
+    enabled: bool = True
+    host: str = "0.0.0.0"
+    port: int = 8080
+
+
 class AppConfig(BaseModel):
     camera: CameraConfig = Field(default_factory=CameraConfig)
     detector: DetectorConfig = Field(default_factory=DetectorConfig)
@@ -64,6 +70,7 @@ class AppConfig(BaseModel):
     telegram: TelegramConfig = Field(default_factory=TelegramConfig)
     email: EmailConfig = Field(default_factory=EmailConfig)
     mqtt: MqttConfig = Field(default_factory=MqttConfig)
+    web: WebConfig = Field(default_factory=WebConfig)
 
 
 def load_config(config_path: Optional[Union[str, Path]] = None) -> AppConfig:
@@ -80,9 +87,10 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> AppConfig:
                 import yaml
                 data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
                 cfg = AppConfig(**data)
+                # Auto-enable telegram if user provided credentials
                 if cfg.telegram.bot_token and cfg.telegram.chat_id and not cfg.telegram.enabled:
                     cfg.telegram.enabled = True
                 return cfg
-            except Exception:
-                pass
+            except Exception as exc:
+                print(f"Warning: Failed to parse {p} ({exc}), checking next.")
     return AppConfig()

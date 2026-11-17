@@ -1,0 +1,62 @@
+# =============================================
+# SMART SENTRY VISION - CONFIGURATION TEMPLATE
+# =============================================
+
+# 1. Camera input source (USB Webcam index or RTSP IP camera URL)
+camera:
+  source: 0                      # 0 for /dev/video0, or url
+  width: 640
+  height: 480
+  fps_limit: 15.0
+  reconnect_interval_s: 5.0
+
+# 2. Object detection engine (pluggable: onnx, synthetic)
+detector:
+  backend: "onnx"                # "onnx" (default) or "synthetic" (mock for testing)
+  model_path: "models/yolo11n.onnx"
+  confidence_threshold: 0.50
+  nms_threshold: 0.45
+  input_size: [640, 640]
+  target_classes:                # Classes that trigger intrusion alerts
+    - "person"
+    # - "dog"
+    # - "cat"
+    # - "car"
+
+# 3. Sentry guard watchdog
+sentry:
+  enabled: false                 # Default state on startup (Arm via Telegram or Web UI)
+  cooldown_seconds: 60           # Anti-spam cooldown between successive alert dispatches
+  draw_boxes: true               # Draw green bounding boxes and confidence score on snapshots
+  save_local_snapshots: true     # Save a copy of intruder snapshots to disk
+  snapshot_dir: "snapshots"
+
+# 4. Telegram bot integration (bi-directional: alerts + remote control)
+telegram:
+  enabled: false                 # Set to true after filling bot_token and chat_id
+  bot_token: ""                  # Obtain from @BotFather on Telegram
+  chat_id: ""                    # Your Telegram user/group ID (Use 'smart-sentry find-chat-id')
+  allowed_chat_ids: []           # Optional whitelist. If empty, allows only the configured chat_id
+  polling_interval_seconds: 2.0  # Background listener frequency for remote bot commands
+
+# 5. SMTP email alerts (optional secondary channel)
+email:
+  enabled: false
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 587
+  sender_email: ""
+  sender_password: ""            # Gmail app pwd (16 characters)
+  recipient_email: ""
+
+# 6. MQTT Integration (optional robotics / home assistant bridge)
+mqtt:
+  enabled: false
+  broker_host: "localhost"
+  broker_port: 1883
+  topic: "sentry/events/intrusion"
+
+# 7. Web dashboard & MJPEG video stream server
+web:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8080
