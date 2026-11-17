@@ -67,7 +67,8 @@ class SentryEngine:
             self._background_tasks.append(
                 asyncio.create_task(self.telegram.poll_commands_loop(lambda: self._running), name="telegram_listener")
             )
-        logger.info(f"SentryEngine online. Sentry status: {"ARMED" if self.is_armed else "DISARMED"}")
+        status_str = "ARMED" if self.is_armed else "DISARMED"
+        logger.info(f"SentryEngine online. Sentry status: {status_str}")
 
     async def stop(self) -> None:
         logger.info("Stopping SentryEngine...")
