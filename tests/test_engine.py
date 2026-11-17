@@ -30,4 +30,10 @@ async def test_engine_arm_disarm_and_process():
     assert "app_ram_mb" in status["system"]
     assert "host_ram_gb" in status["system"]
 
+    # Test motion gate toggle
+    assert engine.config.sentry.motion_gate_enabled is True
+    assert engine.toggle_motion_gate(False) is False
+    assert engine.config.sentry.motion_gate_enabled is False
+    assert engine.toggle_motion_gate(True) is True
+
     engine.camera.release()

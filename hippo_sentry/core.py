@@ -11,6 +11,7 @@ from .config import AppConfig
 from .camera.capture import CameraCapture
 from .detectors.base import BaseDetector, DetectionResult
 from .detectors.factory import create_detector
+from .detectors.motion import MotionGate
 from .notifiers.telegram import TelegramNotifier
 from .notifiers.email_smtp import EmailNotifier
 from .notifiers.mqtt_pub import MqttNotifier
@@ -45,6 +46,7 @@ class SentryEngine:
         self.email = EmailNotifier(config.email)
         self.mqtt = MqttNotifier(config.mqtt)
         self.system_monitor = SystemMonitor()
+        self.motion_gate = MotionGate(min_area_ratio=config.sentry.motion_sensitivity)
 
         self.is_armed: bool = config.sentry.enabled
         self.alerts_count: int = 0
@@ -87,6 +89,7 @@ class SentryEngine:
 
     def disarm(self) -> bool:
         self.is_armed = False
+        self.motion_gate.reset()
         logger.info("SentryEngine: DISARMED.")
         return False
 
@@ -97,6 +100,14 @@ class SentryEngine:
             self.disarm()
             logger.info("SentryEngine: Camera disabled -> Guard mode automatically DISARMED.")
         return is_on
+
+    def toggle_motion_gate(self, enabled: Optional[bool] = None) -> bool:
+        new_state = (not self.config.sentry.motion_gate_enabled) if enabled is None else enabled
+        self.config.sentry.motion_gate_enabled = new_state
+        if not new_state:
+            self.motion_gate.reset()
+        logger.info(f"SentryEngine: Motion Gating {'ENABLED' if new_state else 'DISABLED'}.")
+        return new_state
 
     def get_latest_jpeg(self) -> Optional[bytes]:
         return self._latest_jpeg
@@ -116,6 +127,14 @@ class SentryEngine:
             self.last_detections = []
             return frame, []
 
+        # Stage 1: Ultra-fast pixel motion gating (< 0.2ms)
+        if self.config.sentry.motion_gate_enabled:
+            has_motion = self.motion_gate.check_motion(frame)
+            if not has_motion:
+                # Static room -> Skip YOLOv11! CPU stays at ~1%
+                return frame, []
+
+        # Stage 2: Neural Verification (YOLOv11 ONNX)
         detections = await asyncio.to_thread(self.detector.detect, frame)
         self.last_detections = detections
 
@@ -245,6 +264,14 @@ class SentryEngine:
             self.toggle_camera(False)
             await self.telegram.send_text_message("<b>Privacy Mode: ACTIVE</b>\nCamera sensor powered off.", chat_id)
 
+        elif cmd in ("/motion_on", "motion_on", "/motion on", "motion on"):
+            self.toggle_motion_gate(True)
+            await self.telegram.send_text_message("<b>Motion Gating: ON</b>\nYOLO inference will be skipped in static rooms to save CPU.", chat_id)
+
+        elif cmd in ("/motion_off", "motion_off", "/motion off", "motion off"):
+            self.toggle_motion_gate(False)
+            await self.telegram.send_text_message("<b>Motion Gating: OFF</b>\nYOLO will evaluate every frame continuously.", chat_id)
+
         elif cmd in ("/photo", "/snapshot", "photo", "camera"):
             frame, _ = await self.process_frame()
             jpeg = self._encode_jpeg(frame)
@@ -275,6 +302,8 @@ class SentryEngine:
                 "/disarm - Disarm guard mode\n"
                 "/cam_on - Power on camera sensor\n"
                 "/cam_off - Power off camera (Privacy mode)\n"
+                "/motion_on - Enable motion filter (saves CPU)\n"
+                "/motion_off - Disable motion filter (continuous YOLO)\n"
                 "/photo - Capture live photo snapshot\n"
                 "/status - Report system telemetry and FPS\n"
                 "/help - Display command reference"
@@ -285,6 +314,7 @@ class SentryEngine:
         return {
             "armed": self.is_armed,
             "camera_power": self.camera.is_powered_on,
+            "motion_gate_enabled": self.config.sentry.motion_gate_enabled,
             "has_physical_device": self.camera.has_physical_device,
             "fps": self.camera.measured_fps,
             "alerts_count": self.alerts_count,

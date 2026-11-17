@@ -31,6 +31,8 @@ class SentryWatchdogConfig(BaseModel):
     draw_boxes: bool = True
     save_local_snapshots: bool = True
     snapshot_dir: str = "snapshots"
+    motion_gate_enabled: bool = True
+    motion_sensitivity: float = Field(0.015, ge=0.001, le=0.2)
 
 
 class TelegramConfig(BaseModel):

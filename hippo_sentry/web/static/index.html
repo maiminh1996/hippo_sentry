@@ -116,7 +116,8 @@
     <div class="buttons">
       <button id="armBtn" class="btn-arm" onclick="toggleArm()">Arm Guard Mode</button>
       <button id="camBtn" onclick="toggleCamera()">Disable Camera</button>
-      <button onclick="testAlert()">Test Alert</button>
+      <button id="motionBtn" onclick="toggleMotion()">Motion Gate: ON</button>
+      <!-- <button onclick="testAlert()">Test Alert</button> -->
     </div>
 
     <!-- 3 Simple Lines of Stats -->
@@ -138,7 +139,12 @@
       <!-- row 3: Target và Alert -->
       <div class="stats-line">
         <span>Target: <strong id="targetsCfgVal">person (0)</strong></span>
-        <span>|</span>
+        <!-- <span>|</span>
+        <span>Alerts: <strong id="alertsCountVal">0 sent (Last: None)</strong></span> -->
+      </div>
+      <div class="stats-line">
+        <!-- <span>Target: <strong id="targetsCfgVal">person (0)</strong></span>
+        <span>|</span> -->
         <span>Alerts: <strong id="alertsCountVal">0 sent (Last: None)</strong></span>
       </div>
     </div>
@@ -165,6 +171,11 @@
 
     async function toggleCamera() {
       await fetch("/api/camera/toggle", { method: "POST" });
+      updateStatus();
+    }
+
+    async function toggleMotion() {
+      await fetch("/api/motion/toggle", { method: "POST" });
       updateStatus();
     }
 
@@ -208,6 +219,13 @@
 
         const camBtn = document.getElementById("camBtn");
         camBtn.innerText = s.camera_power ? "Disable Camera" : "Enable Camera";
+
+        const motionBtn = document.getElementById("motionBtn");
+        if (motionBtn && s.motion_gate_enabled !== undefined) {
+          motionBtn.innerText = s.motion_gate_enabled ? "Motion Gate: ON" : "Motion Gate: OFF";
+          motionBtn.style.color = s.motion_gate_enabled ? "#1a7f37" : "#cf222e";
+          motionBtn.style.borderColor = s.motion_gate_enabled ? "#2da44e" : "#cf222e";
+        }
 
         // row 1: CPU và RAM
         if (s.system) {

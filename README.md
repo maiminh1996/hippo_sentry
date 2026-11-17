@@ -16,12 +16,7 @@ Designed for standalone deployment on laptops, Mini PCs, Raspberry Pi, home serv
 
 ---
 
-<p align="center">
-  <img src="./demo.png" />
-</p>
-
 ## Motivation
-
 
 I have a small stuffed hippo sitting on my desk that always seems to be staring at me. Right before leaving for vacation, I needed a simple way to check on my empty room while away. Commercial smart cameras require vendor accounts, stream indoor footage to company clouds, and charge monthly fees just to store clips. Self-hosted NVRs like Frigate are solid for multi-camera setups with dedicated Coral TPUs, but way too heavy when you just want to monitor one room with a single webcam. Most scripts on GitHub were just simple one-off tutorials without two-way bot control or an easy way to shut the camera off for privacy when you get back home.
 
@@ -42,6 +37,10 @@ I had an old Logitech USB webcam lying around, a local Linux home server running
     - `/cam_on` / `/cam_off`: Power toggle camera sensor on/off (Privacy mode).
     - `/photo`: Capture and deliver an on-demand live snapshot.
     - `/status`: Live system telemetry, CPU, RAM, FPS, and alert count.
+- **Two-Stage Cascaded Motion Gating**:
+  - Evaluates lightning-fast frame differencing (< 0.2ms) before calling YOLOv11.
+  - In an empty room, neural network inference is skipped entirely, keeping armed idle CPU at ~1%.
+  - Instantly wakes up YOLO for neural verification as soon as movement is detected.
 - **Privacy Hardware Sensor Toggle**:
   - Disable camera sensor stream anytime via Telegram or Web UI. Replaces output with a privacy frame without exposing raw video feeds.
 - **Anti-Spam Cooldown & Local Snapshot Logging**:
@@ -109,12 +108,12 @@ cp config.example.yaml config.yaml
 # Edit config.yaml with bot_token and chat_id
 
 # Run Sentry Engine & Web Dashboard
-hippo-sentry run --config config.yaml
+smart-sentry run --config config.yaml
 ```
 
 > **Need your Telegram Chat ID?** Run the auto-discovery utility:
 > ```bash
-> hippo-sentry find-chat-id --token YOUR_TELEGRAM_BOT_TOKEN
+> smart-sentry find-chat-id --token YOUR_TELEGRAM_BOT_TOKEN
 > ```
 
 ---
@@ -127,6 +126,8 @@ hippo-sentry run --config config.yaml
 | `/disarm` | Disarm sentry watchdog (waiting mode) |
 | `/cam_on` | Power on camera sensor |
 | `/cam_off` | Power off camera (Privacy Mode) |
+| `/motion_on` | Enable motion filter (saves CPU in static rooms) |
+| `/motion_off` | Disable motion filter (continuous YOLO) |
 | `/photo` | Capture and send live room snapshot |
 | `/status` | System health, CPU, RAM, FPS, and alert count |
 | `/help` | Display command manual |

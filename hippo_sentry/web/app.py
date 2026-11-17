@@ -70,6 +70,11 @@ def create_web_app(engine: SentryEngine) -> FastAPI:
         val = req.enabled if req else None
         return {"status": "SUCCESS", "camera_power": engine.toggle_camera(val)}
 
+    @app.post("/api/motion/toggle")
+    async def toggle_motion(req: SentryToggleRequest = None):
+        val = req.enabled if req else None
+        return {"status": "SUCCESS", "motion_gate_enabled": engine.toggle_motion_gate(val)}
+
     @app.post("/api/alert/test")
     async def trigger_test_alert():
         frame, _ = await engine.process_frame()
