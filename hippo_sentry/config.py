@@ -25,9 +25,45 @@ class DetectorConfig(BaseModel):
     target_classes: List[str] = Field(default_factory=lambda: ["person"])
 
 
+class SentryWatchdogConfig(BaseModel):
+    enabled: bool = False
+    cooldown_seconds: int = Field(60, ge=1)
+    draw_boxes: bool = True
+    save_local_snapshots: bool = True
+    snapshot_dir: str = "snapshots"
+
+
+class TelegramConfig(BaseModel):
+    enabled: bool = False
+    bot_token: str = ""
+    chat_id: str = ""
+    allowed_chat_ids: List[str] = Field(default_factory=list)
+    polling_interval_seconds: float = Field(2.0, ge=0.5)
+
+
+class EmailConfig(BaseModel):
+    enabled: bool = False
+    smtp_server: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    sender_email: str = ""
+    sender_password: str = ""
+    recipient_email: str = ""
+
+
+class MqttConfig(BaseModel):
+    enabled: bool = False
+    broker_host: str = "localhost"
+    broker_port: int = 1883
+    topic: str = "sentry/events/intrusion"
+
+
 class AppConfig(BaseModel):
     camera: CameraConfig = Field(default_factory=CameraConfig)
     detector: DetectorConfig = Field(default_factory=DetectorConfig)
+    sentry: SentryWatchdogConfig = Field(default_factory=SentryWatchdogConfig)
+    telegram: TelegramConfig = Field(default_factory=TelegramConfig)
+    email: EmailConfig = Field(default_factory=EmailConfig)
+    mqtt: MqttConfig = Field(default_factory=MqttConfig)
 
 
 def load_config(config_path: Optional[Union[str, Path]] = None) -> AppConfig:
@@ -36,14 +72,17 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> AppConfig:
         candidates.append(Path(config_path))
     if os.environ.get("SENTRY_CONFIG_FILE"):
         candidates.append(Path(os.environ["SENTRY_CONFIG_FILE"]))
-    candidates.extend([Path("config.yaml"), Path("config.example.yaml")])
+    candidates.extend([Path("config.yaml"), Path("/app/config.yaml"), Path("config.example.yaml"), Path("/app/config.example.yaml")])
 
     for p in candidates:
         if p.is_file():
             try:
                 import yaml
                 data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
-                return AppConfig(**data)
+                cfg = AppConfig(**data)
+                if cfg.telegram.bot_token and cfg.telegram.chat_id and not cfg.telegram.enabled:
+                    cfg.telegram.enabled = True
+                return cfg
             except Exception:
                 pass
     return AppConfig()
